@@ -13,13 +13,19 @@ __version__ = '0.4'
 
 class ResidueBEDMaker:
     """
-    A class to create a bed file given a bunch of residue annototations. See `convert` for format of these.
-    BED instance reads the 4.3 GB genome data into memory.
-    One instance per BED file or `.reset` between new operations or the diagnositic will be wrong... no biggy if the data is clean.
-    The `convert` goes through the genome once to match and covert the annotations give and returns a list of str (BED file entries).
-    The `write_report` write the status report.
+    A class to create a bed file given a bunch of residue annototations. See ``.convert`` for format of these.
+
+    One instance per BED file or ``.reset`` between new operations or the diagnositic will be wrong... no biggy if the data is clean.
+
+    The ``convert`` goes through the genome once to match and covert the annotations give and returns a list of str (BED file entries).
+
+    The ``write_report`` write the status report.
+
     The genomefile is a large (4GB for humans) file containing the complete chromosomes.
+    BED instance reads the 4.3 GB genome data into memory when instantiated.
     For humans these are: (save the list to a file and download them with BatchEntrez)
+
+    .. code-block:: text
 
         NC_000001.11
         NC_000002.12
@@ -46,8 +52,8 @@ class ResidueBEDMaker:
         NC_000023.11
         NC_000024.10
 
-        :param genomefile: The genome genbank.
-        :type genomefile: str
+    :param genomefile: The genome genbank.
+    :type genomefile: str
 
     """
     _diagnostic = {'good': [], 'untranslated': [], 'missized': [], 'missing': [], 'todo': [],
@@ -55,6 +61,9 @@ class ResidueBEDMaker:
 
     def __init__(self, genomefile: str):
         """
+        The genomefile is a large (4GB for humans) file containing the complete chromosomes.
+        BED instance reads the 4.3 GB genome data into memory when instantiated.
+
         :param genomefile: The genome genbank.
         :type genomefile: str
         """
@@ -68,20 +77,31 @@ class ResidueBEDMaker:
 
     def reset(self):
         """
-        diagnostic is an attribute that keep track of the errors. See is_valid method.
-        :return:
+        diagnostic is an attribute that keep track of the errors. See ``is_valid`` method.
+
+        :return: self
         """
         self.diagnostic = copy.deepcopy(self._diagnostic)
         return self
 
     def write_report(self, reportfile):
+        """
+        Writes the ``.diagnostic`` to file.
+
+        :param reportfile: filename for the report.
+        :type reportfile: str
+        :return: self
+        """
         with open(reportfile, 'w', newline='\n') as fh:
             w = csv.DictWriter(fh, fieldnames=self.diagnostic.keys())
             w.writeheader()
             w.writerow({k: len(self.diagnostic[k]) for k in self.diagnostic})
+        return self
 
     def convert(self, annotations):
         """
+        Does the conversion of the annotations.
+
         :param annotations: annotations of interest {gene: symbol, x: uniprot: acc, resi start, y: resi end (opt.), name: description}
         :type annotations: List[{gene: str, uniprot: int, x: int, y: int, name: str}]
         :return: bed_entries
@@ -130,6 +150,7 @@ class ResidueBEDMaker:
     def is_valid(self, feat, target, coordinates, chromosome):
         """
         This method checks whether all is good.
+
         :param feat: the genomic gene to use for the mapping
         :type feat: BioFeature
         :param target: see annotations in convert
@@ -171,6 +192,7 @@ class ResidueBEDMaker:
         def convert(loc, offset=0):
             """
             uses from_resi and to_resi from the method.
+
             :param feat Biopython feat
             :param offset:
             :return:
@@ -241,14 +263,6 @@ class ResidueBEDMaker:
         print(f'EXONS OF {feat.qualifiers["gene"][0]}: {" ".join(parts)}')
 
     def _verify(self, x, y, feat, seq):
-        """
-
-        :param x:
-        :param y:
-        :param feat:
-        :param seq:
-        :return:
-        """
         translation = self.get_feature_aa(x, y, feat, seq)
         # the offset is one. +1 for strand +1...-1 for -1
         return feat.qualifiers['translation'][0].find(translation) + feat.location.strand
@@ -256,6 +270,7 @@ class ResidueBEDMaker:
     def get_feature_aa(self, x, y, feat, seq):
         """
         Gets the translation of the genomic x and y, based on feat and genomic seq.
+
         :param x: smallest postion
         :param y: largest postion
         :param feat:
@@ -272,6 +287,11 @@ Tests
 =======
 """
 def test_fore():
+    """
+    A "test" that is not a unitest. that annotates a foreward multi-exon gene (TBL1Y) on the dinky Y chromosome (fast).
+
+    The user has to read the output to see if all is good.
+    """
     bed = ResidueBEDMaker('chrY.gb') #human_genome.gb
     print('loaded')
     data = [{"gene": "TBL1Y", "x": 1, "uniprot": "P08048", "y": 1, "expected": 7025084, "diff": 0, "name": "sense: first residue"},
@@ -296,6 +316,11 @@ def test_fore():
     print(bed.diagnostic)
 
 def test_rev():
+    """
+    A "test" that is not a unitest. that annotates a reverse multi-exon gene (UTY) on the dinky Y chromosome (fast).
+
+    The user has to read the output to see if all is good.
+    """
     bed = ResidueBEDMaker('chrY.gb') #human_genome.gb
     print('loaded')
 
